@@ -1,0 +1,142 @@
+#include <iostream>
+#include <cmath>
+#include <string>
+using namespace std;
+
+class Cipher
+{
+    public:
+    virtual string encode(const string& plaintext) = 0;
+    virtual string decode(const string& ciphertext) = 0;
+    
+    virtual ~Cipher() = default;
+};
+
+class TransposeCipher : public Cipher
+{
+    private:
+    char** createMatrixForEncoding(const string& text, int& size) {
+        int length = text.size();
+        size = ceil(sqrt(length));
+    
+        char** matrix = new char*[size];
+        for (int i = 0; i < size; ++i) {
+            matrix[i] = new char[size];
+            for (int j = 0; j < size; ++j) {
+                matrix[i][j] = ' ';
+            }
+        }
+    
+        int index = 0;
+        for (int i = 0; i < size; ++i) {
+            for (int j = 0; j < size; ++j) {
+                if (index < length) {
+                    matrix[i][j] = text[index++];
+                }
+            }
+        }
+        return matrix;
+    }
+
+    char** createMatrixForDecoding(const string& text, int& size) {
+        int length = text.size();
+        size = ceil(sqrt(length));
+    
+        char** matrix = new char*[size];
+        for (int i = 0; i < size; ++i) {
+            matrix[i] = new char[size];
+            for (int j = 0; j < size; ++j) {
+                matrix[i][j] = ' ';
+            }
+        }
+        
+        int index = 0;
+        for (int i = 0; i < size; ++i) {
+            for (int j = 0; j < size; ++j) {
+                if (index < length) {
+                    matrix[j][i] = text[index++];
+                }
+            }
+        }
+        return matrix;
+    }
+
+    char** transposeMatrix(char** matrix, int size) {
+        char** transposed = new char*[size];
+        for (int i = 0; i < size; ++i) {
+            transposed[i] = new char[size];
+            for (int j = 0; j < size; ++j) {
+                transposed[i][j] = matrix[j][i];
+            }
+        }
+        return transposed;
+    }
+
+    void deleteMatrix(char** matrix, int size) {
+        for (int i = 0; i < size; ++i) {
+            delete[] matrix[i];
+        }
+        delete[] matrix;
+    }
+
+    public:
+    
+    TransposeCipher() {}
+
+    string encode(const string& input) override {
+        int size;
+        char** matrix = createMatrixForEncoding(input, size);
+
+        char** transposed = transposeMatrix(matrix, size);\
+        
+        string encodedText;
+        for (int i = 0; i < size; ++i) {
+            for (int j = 0; j < size; ++j) {
+                encodedText += transposed[i][j];
+            }
+        }
+        
+        deleteMatrix(matrix, size);
+        deleteMatrix(transposed, size);
+    
+        return encodedText;
+    }
+
+    string decode(const string& input) override {
+        int size;
+        char** matrix = createMatrixForDecoding(input, size);
+
+        string decodedText;
+        for (int i = 0; i < size; ++i) {
+            for (int j = 0; j < size; ++j) {
+                if (matrix[i][j] != ' ') {
+                    decodedText += matrix[i][j];
+                }
+            }
+        }
+
+        deleteMatrix(matrix, size);
+    
+        return decodedText;
+    }
+
+    ~TransposeCipher() override {}
+};
+
+int main() {
+    string inputText;
+    cout << "Enter the text to encrypt: ";
+    getline(cin, inputText);
+
+    Cipher& cipher = *new TransposeCipher();
+
+    string encodedText = cipher.encode(inputText);
+    cout << "Encoded text: " << encodedText << endl;
+    
+    string decodedText = cipher.decode(encodedText);
+    cout << "Decoded text: " << decodedText << endl;
+    
+    delete &cipher;
+
+    return 0;
+}
